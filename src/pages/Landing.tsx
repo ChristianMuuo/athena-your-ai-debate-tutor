@@ -31,6 +31,9 @@ export default function Landing() {
             <Link to="/chat">
               <Button variant="ghost" className="text-muted-foreground hover:text-foreground">Try Demo</Button>
             </Link>
+            <Link to="/interview">
+              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">Interview</Button>
+            </Link>
             <Link to="/dashboard">
               <Button variant="ghost" className="text-muted-foreground hover:text-foreground">Dashboard</Button>
             </Link>
