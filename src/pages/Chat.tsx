@@ -4,6 +4,10 @@ import { Send, Sparkles, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { agents, type AgentId, getAgent } from "@/lib/agents";
+import { streamAgentResponse, type ChatMessage } from "@/lib/ai-stream";
+import { fireConfetti } from "@/lib/confetti";
+import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -12,19 +16,13 @@ interface Message {
   timestamp: Date;
 }
 
-const sampleDebate: Omit<Message, "id" | "timestamp">[] = [
-  { agentId: "expert", content: "Great question! A **binary search** works by repeatedly dividing the search interval in half. It requires a **sorted array** and runs in O(log n) time — exponentially faster than linear search for large datasets." },
-  { agentId: "challenger", content: "But wait — what happens if the array isn't sorted? 🤔 Binary search silently gives **wrong results** without any error. That's a nasty bug! And what about duplicate elements? Which one does it find?" },
-  { agentId: "executor", content: "Let me run a quick demo:\n```python\ndef binary_search(arr, target):\n    lo, hi = 0, len(arr) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if arr[mid] == target: return mid\n        elif arr[mid] < target: lo = mid + 1\n        else: hi = mid - 1\n    return -1\n\nprint(binary_search([1,3,5,7,9], 5))  # → 2 ✅\n```\nOutput: `2` — Found at index 2! Runs in ~0.001ms." },
-  { agentId: "planner", content: "Here's your learning roadmap for binary search:\n1. ✅ Understand the concept (you're here!)\n2. 🔲 Implement it from scratch\n3. 🔲 Handle edge cases (empty array, not found)\n4. 🔲 Variations: lower_bound, upper_bound\n5. 🔲 Apply to real problems (LeetCode #33, #34)" },
-  { agentId: "psychologist", content: "You're doing amazing! 🎉 Binary search trips up a lot of people with off-by-one errors, but you're asking the right questions. The fact that you're curious about *how* it works (not just *that* it works) puts you ahead of 90% of students." },
-  { agentId: "historian", content: "Fun fact: I remember last week you struggled with **recursion**. Binary search actually has a beautiful recursive form! This is a perfect bridge between your recursion knowledge and divide-and-conquer algorithms. You're building connections! 📚" },
-];
+const agentOrder: AgentId[] = ["expert", "challenger", "executor", "planner", "psychologist", "historian"];
 
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isDebating, setIsDebating] = useState(false);
+  const [activeAgent, setActiveAgent] = useState<AgentId | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,12 +37,57 @@ export default function Chat() {
     const userMsg: Message = { id: crypto.randomUUID(), agentId: "user", content: userMessage, timestamp: new Date() };
     setMessages((prev) => [...prev, userMsg]);
 
-    // Simulate agents responding one by one
-    for (let i = 0; i < sampleDebate.length; i++) {
-      await new Promise((r) => setTimeout(r, 800 + Math.random() * 600));
-      const msg: Message = { id: crypto.randomUUID(), ...sampleDebate[i], timestamp: new Date() };
-      setMessages((prev) => [...prev, msg]);
+    // Build conversation context for AI
+    const conversationHistory: ChatMessage[] = [{ role: "user", content: userMessage }];
+
+    // Each agent responds in sequence
+    for (const agentId of agentOrder) {
+      setActiveAgent(agentId);
+      const msgId = crypto.randomUUID();
+      let fullContent = "";
+
+      // Add placeholder message
+      setMessages((prev) => [...prev, { id: msgId, agentId, content: "", timestamp: new Date() }]);
+
+      // Build context: include previous agents' responses for this debate round
+      const agentContext: ChatMessage[] = [
+        ...conversationHistory,
+      ];
+
+      try {
+        await streamAgentResponse({
+          messages: agentContext,
+          agentId,
+          onDelta: (delta) => {
+            fullContent += delta;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === msgId ? { ...m, content: fullContent } : m))
+            );
+          },
+          onDone: () => {
+            // Check for celebration trigger
+            if (fullContent.includes("[CELEBRATE]")) {
+              fireConfetti();
+              fullContent = fullContent.replace("[CELEBRATE]", "").trim();
+              setMessages((prev) =>
+                prev.map((m) => (m.id === msgId ? { ...m, content: fullContent } : m))
+              );
+            }
+            // Add this agent's response to context for next agents
+            conversationHistory.push({ role: "assistant", content: `[${agentId}]: ${fullContent}` });
+          },
+        });
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "AI request failed";
+        toast.error(errorMsg);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === msgId ? { ...m, content: `⚠️ ${errorMsg}` } : m))
+        );
+        break;
+      }
     }
+
+    setActiveAgent(null);
     setIsDebating(false);
   };
 
@@ -62,8 +105,15 @@ export default function Chat() {
         <div className="flex items-center gap-1.5 ml-auto">
           {agents.map((a) => {
             const Icon = a.icon;
+            const isActive = activeAgent === a.id;
             return (
-              <div key={a.id} className={`w-7 h-7 rounded-full flex items-center justify-center bg-${a.color}/20`} title={a.name}>
+              <div
+                key={a.id}
+                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                  isActive ? "ring-2 ring-primary scale-110" : ""
+                } bg-${a.color}/20`}
+                title={a.name}
+              >
                 <Icon className={`h-3.5 w-3.5 text-${a.color}`} />
               </div>
             );
@@ -107,15 +157,9 @@ export default function Chat() {
           ))}
         </AnimatePresence>
 
-        {isDebating && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-muted-foreground text-sm">
-            <div className="flex gap-1">
-              <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-            </div>
-            Agents are debating...
-          </motion.div>
+        {/* Typing indicator with active agent avatar */}
+        {isDebating && activeAgent && (
+          <TypingIndicator agentId={activeAgent} />
         )}
       </div>
 
@@ -133,6 +177,30 @@ export default function Chat() {
   );
 }
 
+function TypingIndicator({ agentId }: { agentId: AgentId }) {
+  const agent = getAgent(agentId);
+  const Icon = agent.icon;
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+      className="flex items-center gap-3 max-w-2xl">
+      <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-${agent.color}/20 animate-pulse`}>
+        <Icon className={`h-4 w-4 text-${agent.color}`} />
+      </div>
+      <div className="glass-card px-4 py-3 rounded-2xl rounded-tl-md">
+        <div className="flex items-center gap-2">
+          <span className="font-display text-sm font-semibold text-foreground">{agent.name}</span>
+          <span className="text-xs text-muted-foreground">is thinking...</span>
+          <div className="flex gap-1 ml-1">
+            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function AgentMessage({ msg }: { msg: Message }) {
   const agent = getAgent(msg.agentId as AgentId);
   const Icon = agent.icon;
@@ -146,7 +214,9 @@ function AgentMessage({ msg }: { msg: Message }) {
           <span className="font-display text-sm font-semibold text-foreground">{agent.name}</span>
           <span className="text-xs text-muted-foreground">{agent.title}</span>
         </div>
-        <div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+        <div className="text-sm text-foreground/90 leading-relaxed prose prose-sm prose-invert max-w-none">
+          <ReactMarkdown>{msg.content}</ReactMarkdown>
+        </div>
       </div>
     </div>
   );

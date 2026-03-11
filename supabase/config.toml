@@ -1,0 +1,4 @@
+project_id = "zdcdvicjulqunayacdbh"
+
+[functions.athena-chat]
+verify_jwt = false
