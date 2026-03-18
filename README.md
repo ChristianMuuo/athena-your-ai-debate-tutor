@@ -1,73 +1,98 @@
-# Welcome to your Lovable project
+# ATHENA — Your AI Debate Tutor
 
-## Project info
+Athena is an open-source React application that acts as a strict but encouraging debate coach. It plays devil's advocate to your strongest convictions, helping you practice argumentation, spot logical fallacies, and get instant feedback.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+- **Voice Mode**: Speak naturally using your browser's microphone and hear Athena's responses spoken back to you (works best in Chrome).
+- **Gemini 2.0 Flash Integration**: Lightning-fast, hyper-intelligent debate responses powered by Google's Gemini API.
+- **Structured Feedback**: Every response includes a direct rebuttal, a counter-argument, and a probing question to keep you on your toes.
+- **Debate History**: Sign in to save your sessions and track your growth over time (powered by Supabase).
+- **Beautiful UI**: Built with React, Vite, Tailwind CSS, shadcn/ui, and Framer Motion.
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React 18, TypeScript, Vite
+- **Styling**: Tailwind CSS, shadcn/ui
+- **Animations**: Framer Motion
+- **Database & Auth**: Supabase
+- **AI Backend**: Google Gemini API (via Supabase Edge Functions or direct fallback)
+- **Voice**: Web Speech API (`SpeechRecognition` & `SpeechSynthesis`)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Getting Started Locally
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
+- Node.js (v18+)
+- A [Supabase](https://supabase.com/) project
+- A [Google Gemini API Key](https://aistudio.google.com/app/apikey)
 
-**Use your preferred IDE**
+### Setup
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. **Clone the repository**
+   \`\`\`bash
+   git clone https://github.com/ChristianMuuo/athena-your-ai-debate-tutor.git
+   cd athena-your-ai-debate-tutor
+   \`\`\`
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+2. **Install dependencies**
+   \`\`\`bash
+   npm install
+   # or
+   bun install
+   \`\`\`
 
-Follow these steps:
+3. **Environment Variables**
+   Rename `.env.example` to `.env` and fill in your Supabase and Gemini credentials:
+   \`\`\`env
+   VITE_SUPABASE_URL=https://your-project-id.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-public-key
+   VITE_SUPABASE_PROJECT_ID=your-project-id
+   VITE_GEMINI_API_KEY=your-gemini-api-key
+   \`\`\`
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+4. **Run the development server**
+   \`\`\`bash
+   npm run dev
+   \`\`\`
+   Navigate to `http://localhost:8081` (or whichever port Vite opens).
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Supabase Setup (Optional but required for History)
 
-# Step 3: Install the necessary dependencies.
-npm i
+To enable saving debate history:
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+1. Enable Email/Password authentication in your Supabase dashboard.
+2. Run the following SQL migration in your Supabase SQL Editor:
+   \`\`\`sql
+   create table if not exists debate_sessions (
+     id uuid primary key default gen_random_uuid(),
+     user_id uuid references auth.users(id) on delete cascade,
+     topic text not null,
+     messages jsonb not null default '[]',
+     created_at timestamptz default now()
+   );
+   alter table debate_sessions enable row level security;
+   create policy "Users see own sessions" on debate_sessions
+     for all using (auth.uid() = user_id);
+   \`\`\`
 
-**Edit a file directly in GitHub**
+### Supabase Edge Function (Optional)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+If you want to proxy Gemini requests through the Edge Function instead of direct frontend calls:
+1. Ensure your Supabase CLI is linked to your project.
+2. Set the Gemini API secret:
+   \`\`\`bash
+   supabase secrets set GEMINI_API_KEY=your-api-key
+   \`\`\`
+3. Deploy the function:
+   \`\`\`bash
+   supabase functions deploy athena-chat
+   \`\`\`
 
-**Use GitHub Codespaces**
+## Deployment
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+This app can be easily deployed to Vercel, Netlify, or similar platforms.
+Just make sure to add your `VITE_` environment variables in the platform's dashboard before building.
 
-## What technologies are used for this project?
+## License
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -79,4 +79,16 @@
   .agent-badge-planner { @apply bg-[hsl(var(--agent-planner))] text-white; }
   .agent-badge-psychologist { @apply bg-[hsl(var(--agent-psychologist))] text-white; }
   .agent-badge-historian { @apply bg-[hsl(var(--agent-historian))] text-white; }
+
+  /* Markdown / Chat Bubbles */
+  .prose {
+    @apply break-words;
+  }
+  .prose p {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+  }
+  .prose strong {
+    font-weight: 600;
+  }
 }

@@ -1,6 +1,6 @@
-import { BookOpen, Zap, Play, Map, Heart, Clock } from "lucide-react";
+import { BookOpen, Calculator, FlaskConical, PenTool, Globe, Terminal } from "lucide-react";
 
-export type AgentId = "expert" | "challenger" | "executor" | "planner" | "psychologist" | "historian";
+export type AgentId = "athena" | "archimedes" | "curie" | "shakespeare" | "rosetta" | "turing";
 
 export interface Agent {
   id: AgentId;
@@ -14,59 +14,60 @@ export interface Agent {
 
 export const agents: Agent[] = [
   {
-    id: "expert",
-    name: "Expert",
-    title: "The Professor",
+    id: "athena",
+    name: "Athena",
+    title: "The Critical Thinker",
     icon: BookOpen,
-    description: "Explains concepts with clarity and depth, drawing from vast CS knowledge.",
-    personality: "Wise, thorough, and patient. Speaks with authority but never condescension.",
-    color: "agent-expert",
+    description: "Your debate coach and general knowledge tutor. She challenges assumptions and builds logic.",
+    personality: "Sharp, provocative, and encouraging. Plays devil's advocate beautifully.",
+    color: "agent-challenger", // We can repurpose existing tailwind colors
   },
   {
-    id: "challenger",
-    name: "Challenger",
-    title: "The Troublemaker",
-    icon: Zap,
-    description: "Challenges assumptions, introduces edge cases, and stress-tests your understanding.",
-    personality: "Playful, provocative, and sharp. Loves a good 'what if?' question.",
-    color: "agent-challenger",
-  },
-  {
-    id: "executor",
-    name: "Executor",
-    title: "The Engineer",
-    icon: Play,
-    description: "Runs code in a secure sandbox and shows runtime results with performance graphs.",
-    personality: "Energetic, hands-on, and precise. Speaks in code as much as words.",
-    color: "agent-executor",
-  },
-  {
-    id: "planner",
-    name: "Planner",
-    title: "The Strategist",
-    icon: Map,
-    description: "Breaks complex problems into clear, manageable learning steps.",
-    personality: "Organized, calm, and structured. Loves numbered lists and roadmaps.",
+    id: "archimedes",
+    name: "Archimedes",
+    title: "The Mathematician",
+    icon: Calculator,
+    description: "Breaks down complex math algorithms and formulas into intuitive, bite-sized steps.",
+    personality: "Patient, structured, and precise. Loves using real-world analogies.",
     color: "agent-planner",
   },
   {
-    id: "psychologist",
-    name: "Psychologist",
-    title: "The Cheerleader",
-    icon: Heart,
-    description: "Detects frustration and motivates the student with encouragement.",
-    personality: "Warm, empathetic, and uplifting. Celebrates every small victory.",
+    id: "curie",
+    name: "Curie",
+    title: "The Scientist",
+    icon: FlaskConical,
+    description: "Explores physics, chemistry, and biology through first-principles thinking.",
+    personality: "Curious, empirical, and enthusiastic. Celebrates the wonder of discovery.",
+    color: "agent-expert",
+  },
+  {
+    id: "shakespeare",
+    name: "Shakespeare",
+    title: "The Wordsmith",
+    icon: PenTool,
+    description: "Helps with creative writing, literature analysis, and mastering essay structure.",
+    personality: "Eloquent, thoughtful, and mildly poetic. Loves a good metaphor.",
+    color: "agent-historian",
+  },
+  {
+    id: "rosetta",
+    name: "Rosetta",
+    title: "The Linguist",
+    icon: Globe,
+    description: "Immersive language partner for Spanish, French, Japanese, and more.",
+    personality: "Warm, conversational, and culturally insightful. Focuses on speaking.",
     color: "agent-psychologist",
   },
   {
-    id: "historian",
-    name: "Historian",
-    title: "The Memory Keeper",
-    icon: Clock,
-    description: "Remembers every past interaction, mistake, and breakthrough.",
-    personality: "Thoughtful, nostalgic, and precise. Connects past struggles to current growth.",
-    color: "agent-historian",
+    id: "turing",
+    name: "Turing",
+    title: "The Coder",
+    icon: Terminal,
+    description: "Your pair-programming buddy. Explains code without just giving you the answer.",
+    personality: "Logical, hands-on, and helpful. Speaks in code and values clean architecture.",
+    color: "agent-executor",
   },
 ];
 
 export const getAgent = (id: AgentId) => agents.find((a) => a.id === id)!;
+

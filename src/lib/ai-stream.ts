@@ -77,7 +77,9 @@ export async function streamAgentResponse({
         const parsed = JSON.parse(json);
         const content = parsed.choices?.[0]?.delta?.content as string | undefined;
         if (content) onDelta(content);
-      } catch {}
+      } catch {
+        // ignore malformed JSON chunk
+      }
     }
   }
 
