@@ -74,7 +74,10 @@ async function streamOpenAIDebate({
     return;
   }
 
-  const apiMessages: { role: string; content: any }[] = [{ role: "system", content: systemText }];
+  const apiMessages: { 
+    role: string; 
+    content: string | { type: string; text?: string; image_url?: { url: string } }[] 
+  }[] = [{ role: "system", content: systemText }];
   
   for (const m of messages) {
     if (m.attachments && m.attachments.length > 0) {
