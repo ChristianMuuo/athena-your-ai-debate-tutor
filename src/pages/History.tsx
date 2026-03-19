@@ -25,8 +25,9 @@ export default function History() {
   const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
-    if (user) loadSessions(user.id);
-  }, [user, loadSessions]);
+    // Load from Supabase if signed in, otherwise load from localStorage fallback
+    loadSessions(user?.id ?? "");
+  }, [user?.id, loadSessions]);
 
   if (authLoading) {
     return (

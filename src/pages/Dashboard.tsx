@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Sparkles, LogOut, BookOpen } from "lucide-react";
+import { ArrowLeft, Sparkles, LogOut, BookOpen, History as HistoryIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,8 +16,17 @@ const fadeUp = {
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  // We'll reuse useDebateHistory for now to fetch past sessions
-  const { sessions, loading } = useDebateHistory();
+  const { sessions, loading, loadSessions } = useDebateHistory();
+
+  // Load sessions from Supabase (and localStorage fallback) on mount
+  useEffect(() => {
+    if (user?.id) {
+      loadSessions(user.id);
+    } else {
+      // Load local-only sessions when not signed in to Supabase
+      loadSessions("");
+    }
+  }, [user?.id, loadSessions]);
 
   const handleStartSession = (agent: Agent) => {
     // In the future we can pass mode and agent ID
@@ -94,14 +104,23 @@ export default function Dashboard() {
 
         {/* Recent Sessions */}
         <div>
-          <h2 className="text-2xl font-display font-semibold mb-6">Recent Sessions</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-display font-semibold flex items-center gap-2">
+              <HistoryIcon className="h-5 w-5 text-primary" /> Recent Sessions
+            </h2>
+            {sessions.length > 3 && (
+              <Link to="/history">
+                <Button variant="link" className="text-primary text-sm px-0">View All →</Button>
+              </Link>
+            )}
+          </div>
           {loading ? (
             <div className="glass-card p-8 rounded-2xl flex items-center justify-center">
               <Sparkles className="h-6 w-6 text-primary animate-pulse" />
             </div>
           ) : sessions.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sessions.slice(0, 3).map((session, i) => (
+              {sessions.slice(0, 6).map((session, i) => (
                 <motion.div
                   key={session.id}
                   initial="hidden"
