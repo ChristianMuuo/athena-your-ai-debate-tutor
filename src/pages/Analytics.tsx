@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
-import { Sparkles, TrendingUp, CheckCircle, Brain, Target, Clock, Zap } from "lucide-react";
+import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { AuthModal } from "@/components/AuthModal";
+import { Sparkles, TrendingUp, CheckCircle, Brain, Target, Clock, Zap, Lock, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -153,6 +156,43 @@ export function AnalyticsDashboard() {
 }
 
 export default function Analytics() {
+  const { user, loading } = useAuth();
+  const [authOpen, setAuthOpen] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+        <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#09090b] flex flex-col p-4 md:p-8">
+        <header className="flex items-center mb-10 w-full max-w-6xl mx-auto">
+          <Link to="/" className="flex items-center gap-2 px-2 hover:opacity-80 transition-opacity">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <h1 className="font-display font-semibold text-foreground text-sm tracking-wide">ATHENA Analytics</h1>
+          </Link>
+        </header>
+        <main className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <div className="w-16 h-16 rounded-full bg-[#121215] border border-white/10 flex items-center justify-center mb-6">
+            <Lock className="h-6 w-6 text-zinc-500" />
+          </div>
+          <h2 className="font-display text-2xl font-bold text-white mb-3 tracking-tight">Sign in to see insights</h2>
+          <p className="text-zinc-400 max-w-sm mb-8 leading-relaxed text-sm">
+            Unlock your mastery score, streak tracking, and personalised performance charts by signing into your account.
+          </p>
+          <Button onClick={() => setAuthOpen(true)} className="bg-[#facc15] hover:bg-[#facc15]/90 text-black font-semibold px-8 py-6 rounded-xl">
+            Sign In / Create Account
+          </Button>
+        </main>
+        <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#09090b] flex flex-col p-4 md:p-8 font-sans">
       <header className="flex justify-between items-center mb-10 w-full max-w-6xl mx-auto gap-4 flex-wrap">

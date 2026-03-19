@@ -21,6 +21,12 @@ export default function Landing() {
     navigate(`/debate?topic=${encodeURIComponent(topic.title)}`);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    // Re-navigating to home forces the conditional (user ? dash : landing) to re-evaluate
+    navigate("/", { replace: true });
+  };
+
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -43,7 +49,7 @@ export default function Landing() {
                   </Button>
                 </Link>
                 <div className="h-4 w-px bg-border hidden sm:block" />
-                <Button variant="ghost" onClick={signOut} className="text-muted-foreground hover:text-foreground hover:bg-destructive/10">
+                <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground hover:bg-destructive/10">
                   Sign Out
                 </Button>
               </>
@@ -54,7 +60,7 @@ export default function Landing() {
             )}
             <Link to="/debate">
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-display font-semibold hidden sm:flex">
-                Start Debate <ArrowRight className="ml-2 h-4 w-4" />
+                Start a Session <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -78,19 +84,19 @@ export default function Landing() {
 
             <motion.h1 initial="hidden" animate="visible" variants={fadeUp} custom={1}
               className="font-display text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight mb-6">
-              Master the art of <span className="text-gradient-primary">Argumentation</span>
+              The AI tutor that <span className="text-gradient-primary">Learns you</span> as you learn
             </motion.h1>
 
             <motion.p initial="hidden" animate="visible" variants={fadeUp} custom={2}
               className="text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed">
-              Athena plays devil's advocate to your strongest convictions. 
+              Athena plays devil's advocate to your strongest convictions.
               Practice argumentation, spot fallacies, and get instant feedback — by voice or text.
             </motion.p>
 
             <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={3} className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/debate">
                 <Button size="lg" className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 font-display font-semibold text-lg px-8 py-6 shadow-[0_0_30px_hsl(var(--primary)/0.3)] hover:shadow-[0_0_40px_hsl(var(--primary)/0.5)] transition-all">
-                  Start a Debate <ArrowRight className="ml-2 h-5 w-5" />
+                  Start a Session<ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               {!user && (
@@ -145,7 +151,7 @@ export default function Landing() {
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-1">
                 <HistoryIcon className="h-5 w-5 text-primary" />
               </div>
-              <h4 className="font-display font-semibold text-sm">Debate History</h4>
+              <h4 className="font-display font-semibold text-sm">Session History</h4>
               <p className="text-xs text-muted-foreground max-w-[160px]">Save sessions and track your growth</p>
             </div>
           </div>
