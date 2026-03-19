@@ -23,6 +23,23 @@ interface UseDebateHistoryReturn {
   deleteSession: (id: string) => Promise<void>;
 }
 
+const LOCAL_KEY = "athena_debate_sessions";
+
+function localLoad(): DebateSession[] {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function localSave(sessions: DebateSession[]) {
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(sessions));
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
 export function useDebateHistory(): UseDebateHistoryReturn {
   const [sessions, setSessions] = useState<DebateSession[]>([]);
   const [saving, setSaving] = useState(false);
@@ -32,57 +49,80 @@ export function useDebateHistory(): UseDebateHistoryReturn {
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (user) {
+        const { data, error } = await db
+          .from("debate_sessions")
+          .insert({ user_id: user.id, topic, messages })
+          .select("id")
+          .single();
 
-      const { data, error } = await supabase
-        .from("debate_sessions")
-        .insert({
-          user_id: user.id,
-          topic,
-          messages: messages as unknown as import("@supabase/supabase-js").Json,
-        })
-        .select("id")
-        .single();
-
-      if (error) throw error;
-      return data?.id ?? null;
+        if (!error && data?.id) {
+          setSaving(false);
+          return data.id as string;
+        }
+        console.warn("Supabase save failed, falling back to localStorage:", error?.message);
+      }
     } catch (err) {
-      console.error("Failed to save debate session:", err);
-      return null;
-    } finally {
-      setSaving(false);
+      console.warn("Supabase unavailable, falling back to localStorage:", err);
     }
+
+    // Local fallback — always works even without Supabase
+    const localSession: DebateSession = {
+      id: crypto.randomUUID(),
+      topic,
+      messages,
+      created_at: new Date().toISOString(),
+    };
+    const existing = localLoad();
+    const updated = [localSession, ...existing].slice(0, 50);
+    localSave(updated);
+    setSessions((prev) => [localSession, ...prev]);
+    setSaving(false);
+    return localSession.id;
   }, []);
 
   const loadSessions = useCallback(async (userId: string): Promise<void> => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("debate_sessions")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (!error && data) {
+        const parsed: DebateSession[] = data.map((row: {
+          id: string; topic: string; messages: DebateMessage[]; created_at: string;
+        }) => ({
+          id: row.id,
+          topic: row.topic,
+          messages: row.messages ?? [],
+          created_at: row.created_at ?? "",
+        }));
 
-      const parsed: DebateSession[] = (data ?? []).map((row) => ({
-        id: row.id,
-        topic: row.topic,
-        messages: (row.messages as unknown as DebateMessage[]) ?? [],
-        created_at: row.created_at ?? "",
-      }));
-
-      setSessions(parsed);
-    } catch (err) {
-      console.error("Failed to load debate sessions:", err);
-    } finally {
-      setLoading(false);
+        const local = localLoad();
+        const localOnly = local.filter(l => !parsed.find(p => p.id === l.id));
+        setSessions([...parsed, ...localOnly]);
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // Supabase unavailable
     }
+
+    setSessions(localLoad());
+    setLoading(false);
   }, []);
 
   const deleteSession = useCallback(async (id: string): Promise<void> => {
-    await supabase.from("debate_sessions").delete().eq("id", id);
+    try {
+      await db.from("debate_sessions").delete().eq("id", id);
+    } catch {
+      // ignore
+    }
+    const updated = localLoad().filter((s) => s.id !== id);
+    localSave(updated);
     setSessions((prev) => prev.filter((s) => s.id !== id));
   }, []);
 

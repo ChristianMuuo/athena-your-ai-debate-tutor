@@ -172,7 +172,7 @@ export default function Debate() {
       setSaved(true);
       toast.success("Debate saved to your history!");
     } else {
-      toast.error("Failed to save debate. Try again.");
+      toast.error("Could not save debate. Please check your connection and try again.");
     }
   };
 
