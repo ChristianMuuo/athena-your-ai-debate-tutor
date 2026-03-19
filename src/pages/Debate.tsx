@@ -9,6 +9,8 @@ import { useVoice } from "@/hooks/useVoice";
 import { useAuth } from "@/hooks/useAuth";
 import { useDebateHistory } from "@/hooks/useDebateHistory";
 import { streamGeminiDebate } from "@/lib/gemini";
+import { useXP } from "@/hooks/useXP";
+import { XPBar } from "@/components/XPBar";
 import { toast } from "sonner";
 
 const MAX_CONTEXT_TURNS = 6; // keep last 6 messages for context
@@ -30,6 +32,7 @@ export default function Debate() {
 
   const { user } = useAuth();
   const { saving, saveSession } = useDebateHistory();
+  const { addXp } = useXP();
 
   // Voice hook — auto-fill input & submit when speech ends
   const { isListening, isSpeaking, isSupported, interimTranscript, startListening, stopListening, speak, cancelSpeech } =
@@ -98,6 +101,7 @@ export default function Debate() {
           onDone: () => {
             setIsStreaming(false);
             setSaved(false);
+            addXp(15); // Award XP for every successful debate turn!
             // Auto-speak the response
             if (fullContent) speak(fullContent);
           },
@@ -191,6 +195,9 @@ export default function Debate() {
             {turnCount > 0 ? `${turnCount} turn${turnCount !== 1 ? "s" : ""}` : "Debate with Athena"}
           </p>
         </div>
+
+        {/* XP Bar */}
+        <XPBar />
 
         {/* Save button */}
         <Button
