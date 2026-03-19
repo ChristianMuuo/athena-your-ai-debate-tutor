@@ -74,11 +74,11 @@ async function streamOpenAIDebate({
     return;
   }
 
-  const apiMessages: any[] = [{ role: "system", content: systemText }];
+  const apiMessages: { role: string; content: any }[] = [{ role: "system", content: systemText }];
   
   for (const m of messages) {
     if (m.attachments && m.attachments.length > 0) {
-      const content: any[] = [{ type: "text", text: m.content }];
+      const content: { type: string; text?: string; image_url?: { url: string } }[] = [{ type: "text", text: m.content }];
       
       for (const att of m.attachments) {
         if (att.type === "image") {
@@ -136,7 +136,10 @@ async function streamOpenAIDebate({
         const parsed = JSON.parse(raw);
         const chunk = parsed.choices?.[0]?.delta?.content;
         if (chunk) onDelta(chunk);
-      } catch {}
+      } catch (e) {
+        // skip malformed chunks
+        console.debug("Malformed stream chunk:", e);
+      }
     }
   }
   onDone();
@@ -162,7 +165,7 @@ async function streamNativeGemini({
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   const contents = messages.map(m => {
-    const parts: any[] = [{ text: m.content }];
+    const parts: { text?: string; inline_data?: { mime_type: string; data: string } }[] = [{ text: m.content }];
     if (m.attachments) {
       for (const att of m.attachments) {
         if (att.type === "image" || att.type === "video") {
@@ -217,7 +220,9 @@ async function streamNativeGemini({
         const parsed = JSON.parse(line.slice(6));
         const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
         if (chunk) onDelta(chunk);
-      } catch {}
+      } catch (e) {
+        console.debug("Malformed Gemini stream chunk:", e);
+      }
     }
   }
   onDone();

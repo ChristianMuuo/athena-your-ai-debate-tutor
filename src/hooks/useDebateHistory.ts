@@ -29,7 +29,8 @@ const LOCAL_KEY = "athena_debate_sessions";
 function localLoad(): DebateSession[] {
   try {
     return JSON.parse(localStorage.getItem(LOCAL_KEY) ?? "[]");
-  } catch {
+  } catch (err) {
+    console.error("Failed to load local sessions:", err);
     return [];
   }
 }
@@ -108,8 +109,8 @@ export function useDebateHistory(): UseDebateHistoryReturn {
         setLoading(false);
         return;
       }
-    } catch {
-      // Supabase unavailable
+    } catch (err) {
+      console.warn("Supabase loading failed:", err);
     }
 
     setSessions(localLoad());
@@ -119,8 +120,8 @@ export function useDebateHistory(): UseDebateHistoryReturn {
   const deleteSession = useCallback(async (id: string): Promise<void> => {
     try {
       await db.from("debate_sessions").delete().eq("id", id);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.warn("Supabase delete failed:", err);
     }
     const updated = localLoad().filter((s) => s.id !== id);
     localSave(updated);

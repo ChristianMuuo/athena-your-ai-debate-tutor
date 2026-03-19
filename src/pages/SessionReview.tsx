@@ -3,7 +3,14 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Sparkles, Play, BookOpen, MessageCircle, User, Clock, FileText, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useDebateHistory, type DebateSession } from "@/hooks/useDebateHistory";
+import { useDebateHistory, type DebateSession, type DebateMessage } from "@/hooks/useDebateHistory";
+
+interface Attachment {
+  type: "image" | "video" | "document";
+  mimeType: string;
+  data: string;
+  name?: string;
+}
 
 function formatTime(dateStr: string) {
   const d = new Date(dateStr);
@@ -135,7 +142,7 @@ export default function SessionReview() {
                   {/* Attachments */}
                   {msg.attachments && msg.attachments.length > 0 && (
                     <div className="flex flex-col gap-2 mb-3">
-                      {msg.attachments.map((att: any, idx: number) => (
+                      {msg.attachments.map((att: Attachment, idx: number) => (
                         <div key={idx} className="rounded-lg overflow-hidden bg-black/20 border border-white/10">
                           {att.type === "image" && (
                             <img src={att.data} alt={att.name || "Upload"} className="max-h-64 w-full object-contain" />
