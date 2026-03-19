@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useDebateHistory } from "@/hooks/useDebateHistory";
 import { agents, Agent } from "@/lib/agents";
+import { AnalyticsDashboard } from "./Analytics";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -44,8 +45,13 @@ export default function Dashboard() {
             Welcome back, {user?.email?.split('@')[0] || "Student"} 🎓
           </h1>
           <p className="text-lg text-muted-foreground">
-            Who would you like to learn with today?
+            Check your progress or start a new learning session.
           </p>
+        </motion.div>
+
+        {/* Analytics Embedded */}
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1} className="w-full bg-[#09090b] rounded-2xl p-6 pb-2 border border-border shadow-md">
+          <AnalyticsDashboard />
         </motion.div>
 
         {/* Tutors Grid */}
@@ -60,7 +66,7 @@ export default function Dashboard() {
                 initial="hidden"
                 animate="visible"
                 variants={fadeUp}
-                custom={i + 1}
+                custom={i + 2}
                 onClick={() => handleStartSession(agent)}
                 className="glass-card p-6 rounded-2xl cursor-pointer hover:border-primary/50 group transition-all duration-300 hover:shadow-[0_0_30px_hsl(var(--primary)/0.1)] flex flex-col h-full"
               >
@@ -101,7 +107,7 @@ export default function Dashboard() {
                   initial="hidden"
                   animate="visible"
                   variants={fadeUp}
-                  custom={i + agents.length + 1}
+                  custom={i + agents.length + 2}
                   className="glass-card p-5 rounded-xl hover:bg-secondary/20 transition-colors"
                 >
                   <p className="font-medium text-foreground line-clamp-1 mb-1">{session.topic}</p>

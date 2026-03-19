@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useXP } from "@/hooks/useXP";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Link } from "react-router-dom";
 
 export function XPBar() {
   const { xp, level, progressPercent, currentLevelXp, nextLevelXp } = useXP();
@@ -11,7 +12,7 @@ export function XPBar() {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center gap-3 bg-secondary/80 hover:bg-secondary border border-border/50 px-5 py-2.5 rounded-full transition-colors cursor-help shrink-0 shadow-sm">
+          <Link to="/analytics" className="flex items-center gap-3 bg-secondary/80 hover:bg-secondary border border-border/50 px-5 py-2.5 rounded-full transition-colors cursor-pointer shrink-0 shadow-sm">
             <div className="flex items-center gap-2 text-primary">
               <Trophy className="w-5 h-5" />
               <span className="font-display font-bold text-sm tracking-wide">
@@ -28,7 +29,7 @@ export function XPBar() {
                 {currentLevelXp} / {nextLevelXp}
               </span>
             </div>
-          </div>
+          </Link>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="text-sm p-4 glass-card border-primary/20 bg-background/95">
           <div className="flex flex-col gap-2">
