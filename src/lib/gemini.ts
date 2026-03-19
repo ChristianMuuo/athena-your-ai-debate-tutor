@@ -37,13 +37,12 @@ export async function streamGeminiDebate({
     ? `${TUTOR_SYSTEM_PROMPT}\n\nUser Context/Topic: "${topicContext}". Remember to stay in character.`
     : TUTOR_SYSTEM_PROMPT;
 
-  // 1. Detect if we should use Native Gemini (required for Video/Document interpretation)
-  const hasMultimedia = messages.some(m => 
-    m.attachments?.some(a => a.type === "video" || a.type === "document")
-  );
+  // 1. Detect if we should use Native Gemini (required for Video/Document interpretation, preferred for Images)
+  const hasAttachments = messages.some(m => m.attachments && m.attachments.length > 0);
 
-  // If we have video or documents AND a Gemini key, use Native Gemini
-  if (hasMultimedia && geminiApiKey) {
+  // If we have any attachments AND a Gemini key, use Native Gemini path
+  // It handles images/video/docs much more reliably than generic OpenAI-compatible endpoints
+  if (hasAttachments && geminiApiKey) {
     return streamNativeGemini({ messages, onDelta, onDone, systemText, apiKey: geminiApiKey });
   }
 
@@ -113,7 +112,11 @@ async function streamOpenAIDebate({
   });
 
   if (!resp.ok) {
-    onDelta(`API Error ${resp.status}. Please check your connection.`);
+    let errorDetail = "";
+    if (resp.status === 400) {
+      errorDetail = " (Bad Request - your model may not support vision/attachments)";
+    }
+    onDelta(`API Error ${resp.status}${errorDetail}. Please check your connection or model configuration.`);
     onDone();
     return;
   }
