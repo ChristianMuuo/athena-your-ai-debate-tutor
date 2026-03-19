@@ -146,64 +146,74 @@ export async function streamGeminiDebate({
   onDone: () => void;
   topicContext?: string;
 }): Promise<void> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+  const baseUrl = (import.meta.env.VITE_OPENAI_BASE_URL as string | undefined) || "https://api.openai.com/v1";
+  const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) || "gpt-4o-mini";
+
   if (!apiKey) {
-    throw new Error(
-      "No VITE_GEMINI_API_KEY found. Please add it to your .env file."
-    );
+    const errorMsg = "No `VITE_OPENAI_API_KEY` was found in `.env`! You switched to the OpenAI format. Please grab an API key from OpenAI, Groq, or OpenRouter and add it to your `.env` file! This is a mock response so the UI doesn't crash.";
+    console.warn("No VITE_OPENAI_API_KEY found. Falling back to mock response.");
+    const words = errorMsg.split(" ");
+    for (const word of words) {
+      onDelta(word + " ");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    onDone();
+    return;
   }
 
   const systemText = topicContext
     ? `${TUTOR_SYSTEM_PROMPT}\n\nUser Context/Topic: "${topicContext}". Remember to stay in character.`
     : TUTOR_SYSTEM_PROMPT;
 
-  // Convert to Gemini content format
-  const contents = messages.map((m) => {
-    const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [{ text: m.content }];
-    
+  // Convert to OpenAI content format
+  const apiMessages: any[] = [{ role: "system", content: systemText }];
+  
+  for (const m of messages) {
     if (m.imageData) {
-      // Parse data URL: data:image/png;base64,iVBORw0KGgo...
-      const match = m.imageData.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-      if (match) {
-        parts.push({
-          inlineData: {
-            mimeType: match[1],
-            data: match[2]
-          }
-        });
-      }
+      apiMessages.push({
+        role: m.role,
+        content: [
+          { type: "text", text: m.content },
+          { type: "image_url", image_url: { url: m.imageData } }
+        ]
+      });
+    } else {
+      apiMessages.push({ role: m.role, content: m.content });
     }
+  }
 
-    return {
-      role: m.role === "assistant" ? "model" : "user",
-      parts,
-    };
-  });
-
-  const model = "gemini-2.0-flash";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const url = `${baseUrl}/chat/completions`;
 
   const resp = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
     body: JSON.stringify({
-      system_instruction: { parts: [{ text: systemText }] },
-      contents,
-      generationConfig: {
-        temperature: 0.85,
-        maxOutputTokens: 250,
-      },
+      model: model,
+      messages: apiMessages,
+      temperature: 0.85,
+      max_tokens: 250,
+      stream: true
     }),
   });
 
   if (!resp.ok || !resp.body) {
-    if (resp.status === 429) throw new Error("Rate limited — please try again shortly.");
-    if (resp.status === 400) throw new Error("Invalid request. Check your Gemini API key.");
-    throw new Error(`Gemini API error: ${resp.status}`);
+    const errorMsg = `API Error ${resp.status}. Please verify your API key and billing status! This is a fallback mock response.`;
+    console.warn(`API Error: ${resp.status}. Falling back to mock response.`);
+    const words = errorMsg.split(" ");
+    for (const word of words) {
+      onDelta(word + " ");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    onDone();
+    return;
   }
 
   const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
+  const decoder = new TextDecoder("utf-8");
   let buf = "";
 
   while (true) {
@@ -213,18 +223,19 @@ export async function streamGeminiDebate({
 
     let nl: number;
     while ((nl = buf.indexOf("\n")) !== -1) {
-      const line = buf.slice(0, nl).replace(/\r$/, "");
+      const line = buf.slice(0, nl).trim();
       buf = buf.slice(nl + 1);
+      
       if (!line.startsWith("data: ")) continue;
       const raw = line.slice(6).trim();
       if (!raw || raw === "[DONE]") continue;
+      
       try {
         const parsed = JSON.parse(raw);
-        const text: string | undefined =
-          parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const text: string | undefined = parsed?.choices?.[0]?.delta?.content;
         if (text) onDelta(text);
       } catch {
-        /* skip malformed chunks */
+        // skip malformed chunks
       }
     }
   }

@@ -33,14 +33,22 @@ export function useAuth(): UseAuthReturn {
     return () => subscription.unsubscribe();
   }, []);
 
+  const formatError = (error: any) => {
+    if (!error) return null;
+    if (error.message === "Failed to fetch") {
+      return "Connection failed! The Supabase database might be paused. Please add your active Supabase URL and Anon Key to your .env file.";
+    }
+    return error.message;
+  };
+
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    return { error: formatError(error) };
   };
 
   const signUp = async (email: string, password: string): Promise<{ error: string | null }> => {
     const { error } = await supabase.auth.signUp({ email, password });
-    return { error: error?.message ?? null };
+    return { error: formatError(error) };
   };
 
   const signOut = async () => {
