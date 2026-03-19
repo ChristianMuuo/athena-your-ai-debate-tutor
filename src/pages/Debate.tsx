@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Sparkles, Save, Loader2, Send, ImageIcon, X } from "lucide-react";
+import { ArrowLeft, Sparkles, Save, Loader2, Send, Paperclip, X, FileText, Film, Image as ImageIcon } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { DebateChat, type DebateMessage } from "@/components/DebateChat";
+import { DebateChat, type DebateMessage, type Attachment } from "@/components/DebateChat";
 import { VoiceButton } from "@/components/VoiceButton";
 import { useVoice } from "@/hooks/useVoice";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +12,7 @@ import { streamGeminiDebate } from "@/lib/gemini";
 import { useXP } from "@/hooks/useXP";
 import { XPBar } from "@/components/XPBar";
 import { toast } from "sonner";
+import { extractTextFromFile, getFileIcon } from "@/lib/fileParser";
 
 const MAX_CONTEXT_TURNS = 6; // keep last 6 messages for context
 
@@ -27,7 +28,7 @@ export default function Debate() {
     timestamp: new Date()
   }]);
   const [input, setInput] = useState("");
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +54,7 @@ export default function Debate() {
       id: crypto.randomUUID(),
       role: m.role as "user" | "assistant",
       content: m.content,
+      attachments: (m as any).attachments || [],
       timestamp: new Date(m.timestamp),
     }));
     setMessages(hydrated);
@@ -68,11 +70,10 @@ export default function Debate() {
         setTimeout(() => sendMessage(text), 300);
       },
     });
-
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
-      if (!trimmed || isStreaming) return;
+      if (!trimmed && attachments.length === 0 || isStreaming) return;
 
       // Cancel any ongoing speech
       cancelSpeech();
@@ -82,14 +83,14 @@ export default function Debate() {
         id: crypto.randomUUID(),
         role: "user",
         content: trimmed,
-        imageData: selectedImage || undefined,
+        attachments: [...attachments],
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, userMsg]);
       setIsStreaming(true);
-      const currentImage = selectedImage;
-      setSelectedImage(null);
+      const currentAttachments = [...attachments];
+      setAttachments([]);
 
       // Placeholder for streaming assistant message
       const assistantId = crypto.randomUUID();
@@ -107,8 +108,8 @@ export default function Debate() {
       const apiMessages = contextWindow.map((m) => ({
         role: m.role,
         content: m.content,
-        // Only include image for the user's latest message if applicable
-        ...(m.id === userMsg.id && currentImage ? { imageData: currentImage } : {})
+        // Only include attachments for the user's latest message if applicable (or if we want context)
+        attachments: m.attachments
       }));
 
       let fullContent = "";
@@ -138,7 +139,7 @@ export default function Debate() {
         setIsStreaming(false);
       }
     },
-    [isStreaming, messages, topicParam, cancelSpeech, speak, selectedImage]
+    [isStreaming, messages, topicParam, cancelSpeech, speak, attachments, addXp]
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -160,20 +161,37 @@ export default function Debate() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file.");
-      return;
+
+    try {
+      const type = getFileIcon(file.type) as Attachment["type"];
+      const extractedText = await extractTextFromFile(file);
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = e.target?.result as string;
+        setAttachments(prev => [...prev, {
+          type,
+          mimeType: file.type,
+          data,
+          name: file.name,
+          extractedText
+        }]);
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (err) {
+      toast.error("Failed to process file.");
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setSelectedImage(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    
     // Reset input
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -190,6 +208,7 @@ export default function Debate() {
       role: m.role,
       content: m.content,
       timestamp: m.timestamp.toISOString(),
+      attachments: m.attachments
     }));
 
     const id = await saveSession(topicParam, historyMessages);
@@ -274,26 +293,38 @@ export default function Debate() {
           className="flex flex-col gap-2 max-w-3xl mx-auto"
           aria-label="Debate input form"
         >
-          {selectedImage && (
-            <div className="relative inline-block w-24 h-24 mb-2">
-              <img src={selectedImage} alt="Selected" className="w-full h-full object-cover rounded-lg border border-border" />
-              <button
-                type="button"
-                onClick={() => setSelectedImage(null)}
-                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-md hover:scale-110 transition-transform"
-              >
-                <X className="w-3 h-3" />
-              </button>
+          {/* Attachment Previews */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2 p-2 bg-secondary/30 rounded-lg">
+              {attachments.map((att, i) => (
+                <div key={i} className="relative group">
+                  <div className="w-16 h-16 rounded-lg bg-secondary border border-border flex items-center justify-center overflow-hidden">
+                    {att.type === "image" && <img src={att.data} alt="Preview" className="w-full h-full object-cover" />}
+                    {att.type === "video" && <Film className="w-6 h-6 text-muted-foreground" />}
+                    {att.type === "document" && <FileText className="w-6 h-6 text-muted-foreground" />}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(i)}
+                    className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 shadow-md hover:scale-110 transition-transform"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  <p className="text-[8px] text-muted-foreground truncate w-16 mt-1 text-center font-medium">
+                    {att.name}
+                  </p>
+                </div>
+              ))}
             </div>
           )}
           
           <div className="flex gap-2 items-center">
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,video/*,.pdf,.txt,.md,.csv"
               className="hidden"
               ref={fileInputRef}
-              onChange={handleImageSelect}
+              onChange={handleFileSelect}
             />
             
             <Button
@@ -303,22 +334,22 @@ export default function Debate() {
               className="rounded-xl shrink-0 border-border hover:bg-secondary"
               onClick={() => fileInputRef.current?.click()}
               disabled={isStreaming}
-              aria-label="Upload image"
+              aria-label="Add attachment"
             >
-              <ImageIcon className="h-4 w-4 text-muted-foreground" />
+              <Paperclip className="h-4 w-4 text-muted-foreground" />
             </Button>
 
             <input
               ref={inputRef}
               value={isListening ? interimTranscript : input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isListening ? "Listening…" : "State your position or argument…"}
-            disabled={isStreaming || isListening}
-            aria-label="Your argument"
-            className="flex-1 bg-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground
-              placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50
-              disabled:opacity-60 transition-all"
-          />
+              placeholder={isListening ? "Listening…" : "Attach files or state your argument…"}
+              disabled={isStreaming || isListening}
+              aria-label="Your argument"
+              className="flex-1 bg-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground
+                placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50
+                disabled:opacity-60 transition-all"
+            />
 
           <VoiceButton
             isListening={isListening}

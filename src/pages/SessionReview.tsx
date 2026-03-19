@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Sparkles, Play, BookOpen, MessageCircle, User, Clock } from "lucide-react";
+import { ArrowLeft, Sparkles, Play, BookOpen, MessageCircle, User, Clock, FileText, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDebateHistory, type DebateSession } from "@/hooks/useDebateHistory";
 
@@ -126,13 +126,40 @@ export default function SessionReview() {
 
                 {/* Bubble */}
                 <div
-                  className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap
+                  className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed
                     ${msg.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-tr-sm"
-                      : "glass-card border border-border/50 text-foreground rounded-tl-sm"
+                      ? "bg-primary text-primary-foreground rounded-tr-sm shadow-md"
+                      : "glass-card border border-border/50 text-foreground rounded-tl-sm shadow-sm"
                     }`}
                 >
-                  {msg.content}
+                  {/* Attachments */}
+                  {msg.attachments && msg.attachments.length > 0 && (
+                    <div className="flex flex-col gap-2 mb-3">
+                      {msg.attachments.map((att: any, idx: number) => (
+                        <div key={idx} className="rounded-lg overflow-hidden bg-black/20 border border-white/10">
+                          {att.type === "image" && (
+                            <img src={att.data} alt={att.name || "Upload"} className="max-h-64 w-full object-contain" />
+                          )}
+                          {att.type === "video" && (
+                            <video controls src={att.data} className="max-h-64 w-full" />
+                          )}
+                          {att.type === "document" && (
+                            <div className="p-2 flex items-center gap-2">
+                              <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center">
+                                <FileText className="h-4 w-4 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-medium truncate text-white">{att.name || "Document"}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="whitespace-pre-wrap">{msg.content}</div>
+
                   {msg.timestamp && (
                     <p className={`text-[10px] mt-2 flex items-center gap-1 
                       ${msg.role === "user" ? "text-primary-foreground/60 justify-end" : "text-muted-foreground"}`}>

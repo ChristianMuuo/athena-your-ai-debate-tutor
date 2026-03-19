@@ -1,13 +1,20 @@
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, FileText, Film, Image as ImageIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+
+export interface Attachment {
+  type: "image" | "video" | "document";
+  mimeType: string;
+  data: string;
+  name?: string;
+}
 
 export interface DebateMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  imageData?: string; // base64 string
+  attachments?: Attachment[];
   timestamp: Date;
 }
 
@@ -58,13 +65,33 @@ function AthenaBubble({ content, isLast }: { content: string; isLast: boolean })
   );
 }
 
-function UserBubble({ content, imageData }: { content: string; imageData?: string }) {
+function UserBubble({ content, attachments }: { content: string; attachments?: Attachment[] }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[85%] md:max-w-[70%] bg-primary text-primary-foreground rounded-2xl rounded-br-md px-5 py-4">
-        {imageData && (
-          <div className="mb-3 rounded-lg overflow-hidden bg-black/20">
-            <img src={imageData} alt="User upload" className="max-h-64 object-contain" />
+      <div className="max-w-[85%] md:max-w-[70%] bg-primary text-primary-foreground rounded-2xl rounded-br-md px-5 py-4 shadow-lg">
+        {attachments && attachments.length > 0 && (
+          <div className="flex flex-col gap-2 mb-3">
+            {attachments.map((att, i) => (
+              <div key={i} className="rounded-lg overflow-hidden bg-black/20 border border-white/10">
+                {att.type === "image" && (
+                  <img src={att.data} alt={att.name || "Upload"} className="max-h-64 w-full object-contain" />
+                )}
+                {att.type === "video" && (
+                  <video controls src={att.data} className="max-h-64 w-full" />
+                )}
+                {att.type === "document" && (
+                  <div className="p-3 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate text-white">{att.name || "Document"}</p>
+                      <p className="text-[10px] text-white/60">PDF / Text File</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
@@ -105,7 +132,7 @@ export function DebateChat({ messages, isStreaming, topic }: DebateChatProps) {
   }
 
   return (
-    <div className="flex flex-col gap-5 px-4 py-6">
+    <div className="flex flex-col gap-5 px-4 py-6 overflow-x-hidden">
       <AnimatePresence initial={false}>
         {messages.map((msg, idx) => (
           <motion.div
@@ -115,7 +142,7 @@ export function DebateChat({ messages, isStreaming, topic }: DebateChatProps) {
             transition={{ duration: 0.3 }}
           >
             {msg.role === "user" ? (
-              <UserBubble content={msg.content} imageData={msg.imageData} />
+              <UserBubble content={msg.content} attachments={msg.attachments} />
             ) : (
               <AthenaBubble
                 content={msg.content}

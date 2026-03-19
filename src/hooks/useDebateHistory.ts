@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface DebateMessage {
   role: "user" | "assistant";
   content: string;
+  attachments?: any[]; // Using any to avoid importing Attachment from UI components in a hook
   timestamp: string;
 }
 
