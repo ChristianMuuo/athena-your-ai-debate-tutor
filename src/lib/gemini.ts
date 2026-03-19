@@ -97,7 +97,9 @@ async function streamOpenAIDebate({
   
   for (const m of messages) {
     if (m.attachments && m.attachments.length > 0) {
-      const content: { type: string; text?: string; image_url?: { url: string } }[] = [{ type: "text", text: m.content }];
+      // Groq and others often fail if 'text' is empty in a multi-part message
+      const textContent = m.content.trim() || (m.role === "user" ? "Reviewing these attachments." : "");
+      const content: { type: string; text?: string; image_url?: { url: string } }[] = [{ type: "text", text: textContent }];
       
       for (const att of m.attachments) {
         if (att.type === "image") {
@@ -109,7 +111,7 @@ async function streamOpenAIDebate({
       }
       apiMessages.push({ role: m.role, content });
     } else {
-      apiMessages.push({ role: m.role, content: m.content });
+      apiMessages.push({ role: m.role, content: m.content || " " }); // Use a space if empty
     }
   }
 
