@@ -1,12 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Sparkles, Clock, MessageCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Sparkles, Clock, MessageCircle, Play, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useDebateHistory, type DebateSession } from "@/hooks/useDebateHistory";
 import { AuthModal } from "@/components/AuthModal";
-import { useState } from "react";
+
 
 function formatRelativeTime(dateString: string) {
   const date = new Date(dateString);
@@ -142,16 +142,24 @@ function HistoryCard({ session, index, onDelete }: { session: DebateSession; ind
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground/70 italic flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" />
-          Read-only replay coming soon
-        </span>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex gap-2">
+          <Link to={`/session-review?session=${session.id}`}>
+            <Button variant="outline" size="sm" className="text-xs border-border hover:border-primary/50 hover:text-primary">
+              <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Review
+            </Button>
+          </Link>
+          <Link to={`/debate?topic=${encodeURIComponent(session.topic)}&continueSession=${session.id}`}>
+            <Button size="sm" className="text-xs bg-primary text-primary-foreground hover:bg-primary/90">
+              <Play className="h-3.5 w-3.5 mr-1.5" /> Continue
+            </Button>
+          </Link>
+        </div>
         <Button
           variant="ghost"
           size="sm"
           onClick={onDelete}
-          className="text-destructive/70 hover:text-destructive hover:bg-destructive/10 h-8 px-2 absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
+          className="text-destructive/70 hover:text-destructive hover:bg-destructive/10 h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
           title="Delete session"
         >
           Delete

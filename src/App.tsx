@@ -10,6 +10,7 @@ import Chat from "./pages/Chat";
 import Dashboard from "./pages/Dashboard";
 import Interview from "./pages/Interview";
 import Analytics from "./pages/Analytics";
+import SessionReview from "./pages/SessionReview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/chat" element={<Chat />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/session-review" element={<SessionReview />} />
           <Route path="/interview" element={<Interview />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

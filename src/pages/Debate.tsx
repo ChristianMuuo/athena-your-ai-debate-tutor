@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Sparkles, Save, Loader2, Send, ImageIcon, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -18,6 +18,8 @@ const MAX_CONTEXT_TURNS = 6; // keep last 6 messages for context
 export default function Debate() {
   const [searchParams] = useSearchParams();
   const topicParam = searchParams.get("topic") ?? "Should homework be banned?";
+  const continueSessionId = searchParams.get("continueSession");
+
   const [messages, setMessages] = useState<DebateMessage[]>([{
     id: "welcome-msg",
     role: "assistant",
@@ -31,8 +33,31 @@ export default function Debate() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { user } = useAuth();
-  const { saving, saveSession } = useDebateHistory();
+  const { saving, saveSession, loadSessions, sessions } = useDebateHistory();
   const { addXp } = useXP();
+
+  // Preload messages when continuing a saved session
+  useEffect(() => {
+    if (!continueSessionId) return;
+    const tryLoad = async () => {
+      await loadSessions("");
+    };
+    tryLoad();
+  }, [continueSessionId, loadSessions]);
+
+  useEffect(() => {
+    if (!continueSessionId || sessions.length === 0) return;
+    const saved = sessions.find((s) => s.id === continueSessionId);
+    if (!saved) return;
+    const hydrated: DebateMessage[] = saved.messages.map((m) => ({
+      id: crypto.randomUUID(),
+      role: m.role as "user" | "assistant",
+      content: m.content,
+      timestamp: new Date(m.timestamp),
+    }));
+    setMessages(hydrated);
+    setSaved(true); // already saved — prevent re-saving immediately
+  }, [continueSessionId, sessions]);
 
   // Voice hook — auto-fill input & submit when speech ends
   const { isListening, isSpeaking, isSupported, interimTranscript, startListening, stopListening, speak, cancelSpeech } =
