@@ -1,5 +1,6 @@
 import { generateSpeech, generatePodcastScript as aiGeneratePodcastScript, type PodcastSegment } from "./ai-service";
 import { supabase } from "@/integrations/supabase/client";
+import { stripMarkdownSymbols } from "./stringUtils";
 
 export { type PodcastSegment };
 
@@ -44,11 +45,12 @@ export class PodcastService {
     };
 
     for (const segment of segments) {
-      if (segment.role !== currentRole || (currentText.length + segment.text.length) > 4000) {
+      const cleanText = stripMarkdownSymbols(segment.text);
+      if (segment.role !== currentRole || (currentText.length + cleanText.length) > 4000) {
         await flush();
         currentRole = segment.role;
       }
-      currentText += segment.text + " ";
+      currentText += cleanText + " ";
     }
     await flush();
 
@@ -76,7 +78,7 @@ export class PodcastService {
     for (const segment of segments) {
       try {
         // Break into smaller chunks because Google Translate TTS has a 200 char limit
-        const chunks = this.splitText(segment.text, 180);
+        const chunks = this.splitText(stripMarkdownSymbols(segment.text), 180);
         for (const chunk of chunks) {
           const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=en&client=tw-ob`;
           // Use AllOrigins to bypass CORS - it returns a JSON with base64 data

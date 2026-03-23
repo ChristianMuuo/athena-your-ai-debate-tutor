@@ -4,25 +4,33 @@
 export function stripMarkdownSymbols(text: string): string {
   if (!text) return "";
   
-  return text
-    // Remove headers (# Header)
+  // 1. Remove Table lines (starting/containing lots of | and ---)
+  const lines = text.split('\n');
+  const cleanLines = lines.filter(line => {
+    const trimmed = line.trim();
+    // Typical table markers
+    if (trimmed.startsWith('|') && (trimmed.includes('---') || trimmed.includes(':---'))) return false;
+    // Heuristic: If line has more than 2 pipes, it's probably a table row
+    if ((trimmed.match(/\|/g) || []).length > 2) return false;
+    return true;
+  });
+
+  return cleanLines.join('\n')
+    // 2. Remove decorative dividers (===, ---, ___, ***)
+    .replace(/^[=\-_*]{3,}$/gm, '')
+    // 3. Remove Markdown headers
     .replace(/^#+\s+/gm, '')
-    // Remove bold/italic (***bold***, **bold**, *italic*, __bold__, _italic_)
+    // 4. Remove bold/italic symbols
     .replace(/(\*\*|__)(.*?)\1/g, '$2')
     .replace(/(\*|_)(.*?)\1/g, '$2')
-    // Remove inline code (`code`)
-    .replace(/`(.*?)`/g, '$1')
-    // Remove blockquotes (> quote)
-    .replace(/^\s*>\s+/gm, '')
-    // Remove list markers (- item, * item, + item)
-    .replace(/^\s*[-*+]\s+/gm, '')
-    // Remove numbered list markers (1. item)
-    .replace(/^\s*\d+\.\s+/gm, '')
-    // Remove links [text](url) -> text
+    // 5. Remove link symbols but keep text
     .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-    // Remove horizontal rules
-    .replace(/^\s*[-*_]{3,}\s*$/gm, '')
-    // Remove emojis and other special non-alphanumeric symbols (optional, keeping common punctuation)
-    // .replace(/[^\w\s\p{P}\p{L}]/gu, '') 
+    // 6. Remove list markers (bullet and numeric)
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    // 7. Remove any leftover pipes and backticks
+    .replace(/[|`]/g, ' ')
+    // 8. Normalize multiple newlines and spaces
+    .replace(/\n\s*\n\s*\n/g, '\n\n')
     .trim();
 }

@@ -35,7 +35,7 @@ Your architecture consists of several specialized sub-agents that you must simul
 - **Debate Context**: If the user is in a "Debate" session, maintain your stance but prioritize factual correctness over winning the argument if it helps the user learn.
 - **Multi-Modal Mastery**: You can see and process images (OCR, diagrams, scenes), videos (temporal context, actions), and documents (PDF, Markdown, CSV). Use this data as your primary source of truth.
 
-Always start your response with a clear, authoritative, yet supportive tone. IMPORTANT: Use ONLY plain text and numbers. DO NOT use Markdown symbols (like **, #, -, *, etc.), emojis, or special characters. Keep the output clean and professional for speech and reading.`;
+Always start your response with a clear, authoritative, yet supportive tone. IMPORTANT: Use ONLY plain text and numbers. Strictly avoid tables, pipe symbols (|), decorative dividers (====, ----, ____), and emojis. Keep the output clean and professional for speech and reading.`;
 
 /**
  * Enhanced stream that handles images, videos, and documents.
@@ -389,7 +389,7 @@ export async function extractStudyCards({
 }): Promise<{ front: string; back: string }[]> {
   const systemPrompt = `You are an expert educational psychologist. Analyze the following debate transcript on "${topic}" and extract 3-5 high-value study cards.
 Each card should focus on a core concept, a common fallacy discussed, or a powerful rebuttal used.
-Format: Return ONLY a JSON array of objects with "front" and "back" keys. Use ONLY plain text and numbers for the content. No Markdown symbols.`;
+Format: Return ONLY a JSON array of objects with "front" and "back" keys. Use ONLY plain text and numbers for the content. No symbols, tables, or Markdown formatting.`;
 
   const transcript = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
   
@@ -435,7 +435,7 @@ Analyze the transcript on the topic "${topic}".
 Evaluate both the USER and ATHENA (AI).
 Provide scores (1-10) for Logic, Evidence, and Delivery.
 Determine a winner and provide constructive feedback.
-Format: Return ONLY a JSON object matching the DebateScore interface. All feedback text must be plain text and numbers only. No Markdown.`;
+Format: Return ONLY a JSON object matching the DebateScore interface. All feedback text must be plain text and numbers only. No symbols, tables, or Markdown.`;
 
   const transcript = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
   
@@ -526,7 +526,7 @@ The script must have segments:
 4. Strongest Rebuttal: Highlight the most impactful turn.
 5. Outro: Final thoughts.
 
-Format: Return ONLY a JSON object with a "script" key containing an array of { role: "athena" | "user", text: string, type: string }. Use ONLY plain text and numbers for the script text. No Markdown.`;
+Format: Return ONLY a JSON object with a "script" key containing an array of { role: "athena" | "user", text: string, type: string }. Use ONLY plain text and numbers for the script text. No symbols, tables, or Markdown.`;
 
   const transcript = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
   

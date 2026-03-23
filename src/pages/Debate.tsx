@@ -185,7 +185,7 @@ export default function Debate() {
               },
               onDone: () => {
                 currentMsgs.push({ ...agentAssistantMsg, content: agentFullContent });
-                if (agentFullContent) speak(agentFullContent);
+                if (agentFullContent) speak(stripMarkdownSymbols(agentFullContent));
                 resolve();
               },
             }).catch(reject);
@@ -338,7 +338,7 @@ export default function Debate() {
 
   const handlePlayRecapAloud = () => {
     const text = PodcastService.getCleanScriptText(recapSegments);
-    speak(text);
+    speak(stripMarkdownSymbols(text));
   };
 
   const [unlimitedAudioBlob, setUnlimitedAudioBlob] = useState<Blob | null>(null);
