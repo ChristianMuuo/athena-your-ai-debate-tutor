@@ -54,7 +54,7 @@ export async function streamAIDebate({
   topicContext?: string;
   agentPersonality?: string;
 }): Promise<void> {
-  const { apiKey: openaiApiKey, baseUrl, model, groqKey: groqApiKey } = AI_CONFIG;
+  const { apiKey: openaiApiKey, baseUrl, model: openaiModel, groqKey: groqApiKey } = AI_CONFIG;
 
   let systemText = topicContext
     ? `${TUTOR_SYSTEM_PROMPT}\n\nUser Context/Topic: "${topicContext}".`
@@ -64,12 +64,26 @@ export async function streamAIDebate({
     systemText += `\n\nYOUR SPECIFIC PERSONA: ${agentPersonality}. You must strictly adhere to this character while maintaining your tutoring/debating competence.`;
   }
 
+  // 1. Try OpenAI if configured
   if (openaiApiKey) {
     try {
-      return await streamOpenAIDebate({ messages, onDelta, onDone, systemText, apiKey: openaiApiKey, baseUrl, model });
-    } catch (err) {
-      if (err instanceof Error && err.message.includes("429") && groqApiKey) {
-        console.warn("OpenAI Rate Limit hit, falling back to Groq...");
+      return await streamOpenAIDebate({ 
+        messages, onDelta, onDone, systemText, apiKey: openaiApiKey, baseUrl, model: openaiModel 
+      });
+    } catch (err: any) {
+      if (!groqApiKey || (!err.message?.includes("429") && err.status !== 429)) {
+        throw err;
+      }
+      console.warn("OpenAI Rate Limit hit (or 429), falling back to Groq stream...");
+    }
+  }
+
+  // 2. Try Groq with cascading model fallback
+  if (groqApiKey) {
+    const groqModels = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"];
+    
+    for (const groqModel of groqModels) {
+      try {
         return await streamOpenAIDebate({ 
           messages, 
           onDelta, 
@@ -77,26 +91,19 @@ export async function streamAIDebate({
           systemText, 
           apiKey: groqApiKey, 
           baseUrl: "https://api.groq.com/openai/v1", 
-          model: "llama-3.3-70b-versatile" 
+          model: groqModel 
         });
+      } catch (err: any) {
+        if (err.message?.includes("429") || err.status === 429) {
+          console.warn(`Groq stream Rate Limit (429) for ${groqModel}. Trying next model...`);
+          continue; // Try next model in list
+        }
+        throw err;
       }
-      throw err;
     }
   }
 
-  if (groqApiKey) {
-    return await streamOpenAIDebate({ 
-      messages, 
-      onDelta, 
-      onDone, 
-      systemText, 
-      apiKey: groqApiKey, 
-      baseUrl: "https://api.groq.com/openai/v1", 
-      model: "llama-3.3-70b-versatile" 
-    });
-  }
-
-  onDelta("No AI provider (OpenAI) configured. Please add VITE_OPENAI_API_KEY to your .env file.");
+  onDelta("\n\n[System Notification: All AI providers and models are currently rate-limited. Your message was received, but Athena is temporarily 'out of breath'. Please wait 30-60 seconds and try again.]");
   onDone();
 }
 
@@ -115,7 +122,7 @@ async function fetchAI({
   const { apiKey: openaiApiKey, baseUrl, model, groqKey: groqApiKey } = AI_CONFIG;
 
   const makeRequest = async (key: string, url: string, targetModel: string) => {
-    const resp = await fetch(`${url}/chat/completions`, {
+    return await fetch(`${url}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -127,30 +134,54 @@ async function fetchAI({
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        response_format: responseFormat
+        response_format: responseFormat,
+        temperature: 0.1, // Lower temp for more stable JSON
       }),
     });
-    return resp;
   };
 
+  const groqModels = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"];
+
+  // 1. Try OpenAI if configured
   if (openaiApiKey) {
-    let resp = await makeRequest(openaiApiKey, baseUrl, model);
-    if (resp.status === 429 && groqApiKey) {
-      console.warn("OpenAI Rate Limit (429) hit. Falling back to Groq...");
-      resp = await makeRequest(groqApiKey, "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile");
+    try {
+      const resp = await makeRequest(openaiApiKey, baseUrl, model);
+      if (resp.ok) return await resp.json();
+      if (resp.status !== 429) {
+        const errText = await resp.text();
+        throw new Error(`OpenAI Error ${resp.status}: ${errText.slice(0, 100)}`);
+      }
+      console.warn("OpenAI Rate Limit hit, falling back to Groq...");
+    } catch (err) {
+      if (!groqApiKey) throw err;
+      console.error("OpenAI Fetch failed, falling back to Groq:", err);
     }
-    if (!resp.ok) {
-      const errText = await resp.text();
-      throw new Error(`AI API Error: ${resp.status} ${resp.statusText} - ${errText.slice(0, 100)}`);
-    }
-    return await resp.json();
-  } else if (groqApiKey) {
-    const resp = await makeRequest(groqApiKey, "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile");
-    if (!resp.ok) throw new Error(`Groq Error: ${resp.status}`);
-    return await resp.json();
   }
 
-  throw new Error("No AI provider configured.");
+  // 2. Try Groq with cascading model fallback
+  if (groqApiKey) {
+    for (const groqModel of groqModels) {
+      try {
+        const resp = await makeRequest(groqApiKey, "https://api.groq.com/openai/v1", groqModel);
+        if (resp.ok) return await resp.json();
+        
+        if (resp.status === 429) {
+          console.warn(`Groq Rate Limit (429) for ${groqModel}. Trying next model...`);
+          continue; // Try next model in list
+        }
+        
+        const errText = await resp.text();
+        throw new Error(`Groq Error ${resp.status} (${groqModel}): ${errText.slice(0, 100)}`);
+      } catch (err: any) {
+        if (err.message?.includes("429") || err.status === 429) {
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
+  throw new Error("AI API exhausted: All providers and models returned rate limits or errors.");
 }
 
 
