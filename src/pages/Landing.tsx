@@ -78,7 +78,7 @@ export default function Landing() {
           <div className="text-center max-w-3xl mx-auto mb-16">
             <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-sm font-medium mb-6">
-                <Sparkles className="h-3.5 w-3.5" /> AI Debate Coach
+                <Sparkles className="h-3.5 w-3.5" />Your AI Coach
               </span>
             </motion.div>
 
@@ -144,8 +144,8 @@ export default function Landing() {
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-1">
                 <Zap className="h-5 w-5 text-primary" />
               </div>
-              <h4 className="font-display font-semibold text-sm">Gemini 2.0 Flash</h4>
-              <p className="text-xs text-muted-foreground max-w-[160px]">Lightning fast, super intelligent AI</p>
+              <h4 className="font-display font-semibold text-sm">Groq & OpenAI</h4>
+              <p className="text-xs text-muted-foreground max-w-[160px]">Powered by the world's fastest AI models</p>
             </div>
             <div className="flex flex-col items-center gap-2">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-1">

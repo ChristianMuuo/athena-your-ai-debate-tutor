@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Sparkles, LogOut, BookOpen, History as HistoryIcon } from "lucide-react";
+import { ArrowLeft, Sparkles, LogOut, BookOpen, History as HistoryIcon, GraduationCap, Brain, Target, ShieldAlert, CheckCircle, Zap } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useDebateHistory } from "@/hooks/useDebateHistory";
 import { agents, Agent } from "@/lib/agents";
 import { AnalyticsDashboard } from "./Analytics";
+import { useProfile } from "@/hooks/useProfile";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -17,20 +18,21 @@ export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { sessions, loading, loadSessions } = useDebateHistory();
+  const { profile, fetchProfile } = useProfile();
 
   // Load sessions from Supabase (and localStorage fallback) on mount
   useEffect(() => {
     if (user?.id) {
       loadSessions(user.id);
+      fetchProfile();
     } else {
       // Load local-only sessions when not signed in to Supabase
       loadSessions("");
     }
   }, [user?.id, loadSessions]);
 
-  const handleStartSession = (agent: Agent) => {
-    // In the future we can pass mode and agent ID
-    navigate(`/debate?topic=${encodeURIComponent("General Study")}&agent=${agent.id}`);
+  const handleStartSession = (agent: Agent, topic: string = "General Study") => {
+    navigate(`/debate?topic=${encodeURIComponent(topic)}&agent=${agent.id}`);
   };
 
   return (
@@ -62,6 +64,74 @@ export default function Dashboard() {
         {/* Analytics Embedded */}
         <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1} className="w-full bg-[#09090b] rounded-2xl p-6 pb-2 border border-border shadow-md">
           <AnalyticsDashboard />
+        </motion.div>
+
+        {/* Personalization Section */}
+        {profile && (profile.weaknesses.length > 0 || profile.strengths.length > 0) && (
+          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1.2} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="glass-card p-6 rounded-2xl border-blue-500/20 bg-blue-500/5">
+              <div className="flex items-center gap-3 mb-4">
+                <Target className="h-5 w-5 text-blue-400" />
+                <h3 className="font-display font-bold text-lg">Personalized Insight</h3>
+              </div>
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground w-full mb-1">Recent Strengths</span>
+                  {profile.strengths.slice(0, 3).map((s, i) => (
+                    <span key={i} className="text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" /> {s}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground w-full mb-1">Growth Areas</span>
+                  {profile.weaknesses.slice(0, 3).map((w, i) => (
+                    <span key={i} className="text-xs px-2 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 flex items-center gap-1">
+                      <ShieldAlert className="h-3 w-3" /> {w}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-card p-6 rounded-2xl border-orange-500/20 bg-orange-500/5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <Zap className="h-5 w-5 text-orange-400" />
+                  <h3 className="font-display font-bold text-lg">Ready for a Drill?</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Athena suggests practicing: <span className="text-orange-400 font-bold">"{profile.weaknesses[0]}"</span>
+                </p>
+              </div>
+              <Button 
+                onClick={() => handleStartSession(agents[0], `Deep Dive: ${profile.weaknesses[0]}`)}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                Start Personalized Drill
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Study Deck Quick Access */}
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1.5}>
+          <div className="glass-card p-6 rounded-2xl border-purple-500/20 bg-purple-500/5 flex items-center justify-between group hover:border-purple-500/40 transition-all">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                <Brain className="h-6 w-6 text-purple-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-display font-bold text-foreground">Active Study Deck</h2>
+                <p className="text-sm text-muted-foreground">Review your AI-generated flashcards using spaced repetition.</p>
+              </div>
+            </div>
+            <Link to="/study">
+              <Button className="bg-purple-600 hover:bg-purple-700 text-white font-display">
+                Review Cards &rarr;
+              </Button>
+            </Link>
+          </div>
         </motion.div>
 
         {/* Tutors Grid */}

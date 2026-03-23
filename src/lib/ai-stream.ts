@@ -30,7 +30,7 @@ export async function streamAgentResponse({
   });
 
   if (!resp.ok || !resp.body) {
-    if (resp.status === 429) throw new Error("Rate limited — please try again shortly.");
+    if (resp.status === 429) throw new Error("API rate limit exceeded. Please wait a moment or check your model configuration.");
     if (resp.status === 402) throw new Error("AI credits exhausted. Add credits in workspace settings.");
     throw new Error("Failed to start stream");
   }

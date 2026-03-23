@@ -1,6 +1,6 @@
-import { BookOpen, Calculator, FlaskConical, PenTool, Globe, Terminal } from "lucide-react";
+import { BookOpen, Calculator, FlaskConical, PenTool, Globe, Terminal, ShieldAlert, GraduationCap, Search } from "lucide-react";
 
-export type AgentId = "athena" | "archimedes" | "curie" | "shakespeare" | "rosetta" | "turing";
+export type AgentId = "athena" | "archimedes" | "curie" | "shakespeare" | "rosetta" | "turing" | "devils-advocate" | "philosopher" | "fact-checker";
 
 export interface Agent {
   id: AgentId;
@@ -66,6 +66,33 @@ export const agents: Agent[] = [
     description: "Your pair-programming buddy. Explains code without just giving you the answer.",
     personality: "Logical, hands-on, and helpful. Speaks in code and values clean architecture.",
     color: "agent-executor",
+  },
+  {
+    id: "devils-advocate",
+    name: "The Devil's Advocate",
+    title: "The Aggressive Refuter",
+    icon: ShieldAlert,
+    description: "Specializes in finding the one fatal flaw in any argument.",
+    personality: "Aggressive, skeptical, and relentless. No point is safe from him.",
+    color: "agent-challenger",
+  },
+  {
+    id: "philosopher",
+    name: "The Philosopher",
+    title: "First Principles Master",
+    icon: GraduationCap,
+    description: "Zooms out to ethics, morality, and the fundamental nature of the topic.",
+    personality: "Deep, contemplative, and abstract. Asks 'Why?' more than 'How?'.",
+    color: "agent-expert",
+  },
+  {
+    id: "fact-checker",
+    name: "The Fact-Checker",
+    title: "Data & Evidence Specialist",
+    icon: Search,
+    description: "Source-obsessed. He will call out any statistical inconsistency.",
+    personality: "Pedantic, precise, and objective. Only cares about verifiable data.",
+    color: "agent-planner",
   },
 ];
 

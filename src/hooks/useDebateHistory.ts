@@ -39,8 +39,8 @@ function localSave(sessions: DebateSession[]) {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(sessions));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
+// Superseded by typed client in integratations/supabase/client
+// const db = supabase as any;
 
 export function useDebateHistory(): UseDebateHistoryReturn {
   const [sessions, setSessions] = useState<DebateSession[]>([]);
@@ -52,9 +52,9 @@ export function useDebateHistory(): UseDebateHistoryReturn {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data, error } = await db
+        const { data, error } = await supabase
           .from("debate_sessions")
-          .insert({ user_id: user.id, topic, messages })
+          .insert({ user_id: user.id, topic, messages: messages as any })
           .select("id")
           .single();
 
@@ -86,7 +86,7 @@ export function useDebateHistory(): UseDebateHistoryReturn {
   const loadSessions = useCallback(async (userId: string): Promise<void> => {
     setLoading(true);
     try {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from("debate_sessions")
         .select("*")
         .eq("user_id", userId)
@@ -119,7 +119,7 @@ export function useDebateHistory(): UseDebateHistoryReturn {
 
   const deleteSession = useCallback(async (id: string): Promise<void> => {
     try {
-      await db.from("debate_sessions").delete().eq("id", id);
+      await supabase.from("debate_sessions").delete().eq("id", id);
     } catch (err) {
       console.warn("Supabase delete failed:", err);
     }

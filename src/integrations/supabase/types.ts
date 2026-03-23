@@ -14,7 +14,127 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      debate_sessions: {
+        Row: {
+          id: string
+          user_id: string | null
+          topic: string
+          messages: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          topic: string
+          messages: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          topic?: string
+          messages?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debate_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      study_cards: {
+        Row: {
+          id: string
+          user_id: string | null
+          session_id: string | null
+          front: string
+          back: string
+          mastery_level: number | null
+          next_review: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          session_id?: string | null
+          front: string
+          back: string
+          mastery_level?: number | null
+          next_review?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          session_id?: string | null
+          front?: string
+          back?: string
+          mastery_level?: number | null
+          next_review?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_cards_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "debate_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          weaknesses: string[]
+          strengths: string[]
+          interests: string[]
+          mastery_by_topic: Json
+          last_analyzed: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          weaknesses?: string[]
+          strengths?: string[]
+          interests?: string[]
+          mastery_by_topic?: Json
+          last_analyzed?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          weaknesses?: string[]
+          strengths?: string[]
+          interests?: string[]
+          mastery_by_topic?: Json
+          last_analyzed?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

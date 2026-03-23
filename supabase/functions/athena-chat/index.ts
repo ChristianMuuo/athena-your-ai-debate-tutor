@@ -188,116 +188,46 @@ Explanation: ...
 
 Keep problems realistic and well-structured. If the user submits a solution, evaluate it for correctness, efficiency, and style.`;
 
-// ── Gemini streaming helper ─────────────────────────────────────────────────
+// ── OpenAI / Groq streaming helper ──────────────────────────────────────────
 
-async function streamGemini(
+async function streamOpenAI(
   systemPrompt: string,
-  messages: Array<{ role: string; content: string; imageData?: string }>,
-  apiKey: string
+  messages: Array<{ role: string; content: string }>,
+  apiKey: string,
+  baseUrl: string,
+  model: string
 ): Promise<Response> {
-  // Convert OpenAI-style messages to Gemini format
-  const geminiContents = messages.map((m) => {
-    const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [{ text: m.content }];
-    
-    if (m.imageData) {
-      const match = m.imageData.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-      if (match) {
-        parts.push({
-          inlineData: {
-            mimeType: match[1],
-            data: match[2]
-          }
-        });
-      }
-    }
+  const apiMessages = [{ role: "system", content: systemPrompt }, ...messages];
 
-    return {
-      role: m.role === "assistant" ? "model" : "user",
-      parts,
-    };
-  });
-
-  const geminiBody = {
-    system_instruction: { parts: [{ text: systemPrompt }] },
-    contents: geminiContents,
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 400,
-    },
-  };
-
-  const model = "gemini-2.0-flash";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-
-  const geminiResp = await fetch(url, {
+  const resp = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(geminiBody),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: apiMessages,
+      temperature: 0.7,
+      stream: true,
+    }),
   });
 
-  if (!geminiResp.ok) {
-    const errText = await geminiResp.text();
-    console.error("Gemini error:", geminiResp.status, errText);
-    if (geminiResp.status === 429) {
-      return new Response(JSON.stringify({ error: "Rate limited — please try again shortly." }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    return new Response(JSON.stringify({ error: "Gemini API error: " + geminiResp.status }), {
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error("OpenAI error:", resp.status, errText);
+    return new Response(JSON.stringify({ error: `AI API error: ${resp.status}` }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  // Transform Gemini SSE → OpenAI-compatible SSE so the frontend's existing
-  // ai-stream.ts parser keeps working without modification.
-  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
-  const writer = writable.getWriter();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  (async () => {
-    const reader = geminiResp.body!.getReader();
-    let buf = "";
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        let nl: number;
-        while ((nl = buf.indexOf("\n")) !== -1) {
-          const line = buf.slice(0, nl).replace(/\r$/, "");
-          buf = buf.slice(nl + 1);
-          if (!line.startsWith("data: ")) continue;
-          const raw = line.slice(6).trim();
-          if (!raw || raw === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(raw);
-            const text: string | undefined =
-              parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-              // Emit in OpenAI delta format
-              const chunk = JSON.stringify({
-                choices: [{ delta: { content: text } }],
-              });
-              await writer.write(encoder.encode(`data: ${chunk}\n\n`));
-            }
-          } catch {
-            /* skip malformed */
-          }
-        }
-      }
-    } finally {
-      await writer.write(encoder.encode("data: [DONE]\n\n"));
-      await writer.close();
-    }
-  })();
-
-  return new Response(readable, {
+  return new Response(resp.body, {
     headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
   });
 }
+
+
 
 // ── Main handler ────────────────────────────────────────────────────────────
 
@@ -309,13 +239,12 @@ serve(async (req) => {
   try {
     const { messages, agentId, mode } = await req.json();
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not configured in Supabase secrets.");
-    }
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const OPENAI_BASE_URL = Deno.env.get("OPENAI_BASE_URL") || "https://api.openai.com/v1";
+    const OPENAI_MODEL = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
 
     let systemPrompt: string;
-
     if (mode === "debate" || mode === "tutor") {
       systemPrompt = TUTOR_SYSTEM_PROMPT;
     } else if (mode === "interview") {
@@ -324,7 +253,23 @@ serve(async (req) => {
       systemPrompt = agentSystemPrompts[agentId] ?? agentSystemPrompts.expert;
     }
 
-    return await streamGemini(systemPrompt, messages, GEMINI_API_KEY);
+    if (OPENAI_API_KEY) {
+      try {
+        return await streamOpenAI(systemPrompt, messages, OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL);
+      } catch (err) {
+        if (GROQ_API_KEY) {
+          console.warn("OpenAI Rate Limit hit, falling back to Groq...");
+          return await streamOpenAI(systemPrompt, messages, GROQ_API_KEY, "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile");
+        }
+        throw err;
+      }
+    }
+
+    if (GROQ_API_KEY) {
+      return await streamOpenAI(systemPrompt, messages, GROQ_API_KEY, "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile");
+    }
+
+    throw new Error("No AI API keys (OPENAI_API_KEY or GROQ_API_KEY) configured in Supabase secrets.");
   } catch (e) {
     console.error("athena-chat error:", e);
     return new Response(

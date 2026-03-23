@@ -14,10 +14,9 @@ export async function extractTextFromFile(file: File): Promise<string> {
     });
   }
   
-  // For PDF, we could use pdfjs-dist via a CDN if needed, 
-  // but for now we'll rely on the Gemini API's native PDF support
+  // For PDF, we could use pdfjs-dist via a CDN if needed.
   if (extension === "pdf") {
-    return "[PDF structured data - will be processed by Athena's vision/document engine]";
+    return "[PDF structured data - will be processed by Athena's vision engine]";
   }
   
   return "";

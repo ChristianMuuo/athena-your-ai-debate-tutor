@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Interview from "./pages/Interview";
 import Analytics from "./pages/Analytics";
 import SessionReview from "./pages/SessionReview";
+import Study from "./pages/Study";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/session-review" element={<SessionReview />} />
+          <Route path="/study" element={<Study />} />
           <Route path="/interview" element={<Interview />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

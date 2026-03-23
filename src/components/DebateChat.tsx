@@ -1,7 +1,19 @@
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, FileText, Film, Image as ImageIcon } from "lucide-react";
+import { Sparkles, FileText, Film, Image as ImageIcon, Search, ShieldAlert, GraduationCap, Calculator, FlaskConical, PenTool, Globe, Terminal } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+
+const AGENT_ICONS: Record<string, any> = {
+  athena: Sparkles,
+  archimedes: Calculator,
+  curie: FlaskConical,
+  shakespeare: PenTool,
+  rosetta: Globe,
+  turing: Terminal,
+  "devils-advocate": ShieldAlert,
+  philosopher: GraduationCap,
+  "fact-checker": Search
+};
 
 export interface Attachment {
   type: "image" | "video" | "document";
@@ -16,6 +28,8 @@ export interface DebateMessage {
   content: string;
   attachments?: Attachment[];
   timestamp: Date;
+  agentName?: string;
+  agentIcon?: string;
 }
 
 interface DebateChatProps {
@@ -42,16 +56,17 @@ function TypingDots() {
   );
 }
 
-function AthenaBubble({ content, isLast }: { content: string; isLast: boolean }) {
+function AthenaBubble({ content, isLast, agentName, agentIcon }: { content: string; isLast: boolean; agentName?: string; agentIcon?: string }) {
+  const Icon = (agentIcon && AGENT_ICONS[agentIcon]) || Sparkles;
   return (
     <div className="flex gap-3 max-w-[85%] md:max-w-[70%]">
       {/* Avatar */}
       <div className="w-9 h-9 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0 mt-1">
-        <Sparkles className="h-4 w-4 text-primary" />
+        <Icon className="h-4 w-4 text-primary" />
       </div>
 
       <div className="glass-card px-5 py-4 rounded-2xl rounded-tl-md flex-1 overflow-hidden">
-        <p className="text-xs text-primary font-display font-semibold mb-2">Athena</p>
+        <p className="text-xs text-primary font-display font-semibold mb-2">{agentName || "Athena"}</p>
         <div className="text-sm text-foreground/90 leading-relaxed prose prose-sm prose-invert max-w-none
           prose-strong:text-primary prose-p:my-1 prose-p:leading-relaxed">
           {content ? (
@@ -147,6 +162,8 @@ export function DebateChat({ messages, isStreaming, topic }: DebateChatProps) {
               <AthenaBubble
                 content={msg.content}
                 isLast={idx === messages.length - 1 && isStreaming}
+                agentName={msg.agentName}
+                agentIcon={msg.agentIcon}
               />
             )}
           </motion.div>
