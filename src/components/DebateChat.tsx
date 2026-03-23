@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, FileText, Film, Image as ImageIcon, Search, ShieldAlert, GraduationCap, Calculator, FlaskConical, PenTool, Globe, Terminal } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { stripMarkdownSymbols } from "@/lib/stringUtils";
 
 const AGENT_ICONS: Record<string, any> = {
   athena: Sparkles,
@@ -67,10 +68,9 @@ function AthenaBubble({ content, isLast, agentName, agentIcon }: { content: stri
 
       <div className="glass-card px-5 py-4 rounded-2xl rounded-tl-md flex-1 overflow-hidden">
         <p className="text-xs text-primary font-display font-semibold mb-2">{agentName || "Athena"}</p>
-        <div className="text-sm text-foreground/90 leading-relaxed prose prose-sm prose-invert max-w-none
-          prose-strong:text-primary prose-p:my-1 prose-p:leading-relaxed">
+        <div className="text-sm text-foreground/90 leading-relaxed max-w-none">
           {content ? (
-            <ReactMarkdown>{content}</ReactMarkdown>
+            <p className="whitespace-pre-wrap">{stripMarkdownSymbols(content)}</p>
           ) : isLast ? (
             <TypingDots />
           ) : null}

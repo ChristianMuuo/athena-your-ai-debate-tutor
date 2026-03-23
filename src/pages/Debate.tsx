@@ -21,6 +21,7 @@ import { DebateTimer, DEBATE_FORMATS } from "@/components/DebateTimer";
 import { Trophy, CheckCircle, Target, Zap, Users, UserPlus, MinusCircle, Map as MapIcon } from "lucide-react";
 import { agents as allAgents, getAgent, type Agent } from "@/lib/agents";
 import { ArgumentCanvas } from "@/components/ArgumentCanvas";
+import { stripMarkdownSymbols } from "@/lib/stringUtils";
 import {
   Dialog,
   DialogContent,
@@ -763,7 +764,7 @@ export default function Debate() {
               {recapSegments.map((s, i) => (
                 <p key={i} className="mb-2 last:mb-0">
                   <span className="font-bold text-primary">{s.role === 'athena' ? 'Athena: ' : 'User: '}</span>
-                  {s.text}
+                   {stripMarkdownSymbols(s.text)}
                 </p>
               ))}
             </div>
@@ -812,7 +813,7 @@ export default function Debate() {
               <div className="space-y-4">
                 <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
                   <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Judge's Feedback</h4>
-                  <p className="text-sm leading-relaxed">{debateScore.feedback}</p>
+                  <p className="text-sm leading-relaxed">{stripMarkdownSymbols(debateScore.feedback)}</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -822,7 +823,7 @@ export default function Debate() {
                       {debateScore.strengths.map((s, i) => (
                         <li key={i} className="text-xs flex gap-2">
                           <CheckCircle className="h-3 w-3 text-green-400 shrink-0 mt-0.5" />
-                          {s}
+                          {stripMarkdownSymbols(s)}
                         </li>
                       ))}
                     </ul>
@@ -833,7 +834,7 @@ export default function Debate() {
                       {debateScore.weaknesses.map((w, i) => (
                         <li key={i} className="text-xs flex gap-2">
                           <AlertCircle className="h-3 w-3 text-red-400 shrink-0 mt-0.5" />
-                          {w}
+                          {stripMarkdownSymbols(w)}
                         </li>
                       ))}
                     </ul>
