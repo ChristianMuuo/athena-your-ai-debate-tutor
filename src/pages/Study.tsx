@@ -85,7 +85,7 @@ export default function Study() {
               onClick={() => setIsFlipped(!isFlipped)}
             >
               {/* Front */}
-              <div className={`absolute inset-0 backface-hidden glass-card p-8 flex flex-col items-center justify-center text-center shadow-2xl border-primary/20 bg-secondary/5 ${isFlipped ? 'invisible' : 'visible'}`}>
+              <div className="absolute inset-0 backface-hidden glass-card p-8 flex flex-col items-center justify-center text-center shadow-2xl border-primary/20 bg-secondary/5">
                 <span className="text-xs font-bold text-primary tracking-widest uppercase mb-4 opacity-50">Question / Fact</span>
                 <p className="text-xl font-display font-semibold leading-relaxed text-foreground">
                   {currentCard.front}
@@ -94,7 +94,7 @@ export default function Study() {
               </div>
 
               {/* Back */}
-              <div className={`absolute inset-0 backface-hidden glass-card p-8 flex flex-col items-center justify-center text-center shadow-2xl border-green-500/20 bg-green-500/5 rotate-y-180 ${!isFlipped ? 'invisible' : 'visible'}`}>
+              <div className="absolute inset-0 backface-hidden glass-card p-8 flex flex-col items-center justify-center text-center shadow-2xl border-green-500/20 bg-green-500/5 rotate-y-180">
                 <span className="text-xs font-bold text-green-500 tracking-widest uppercase mb-4 opacity-50">Explanation</span>
                 <div className="text-lg leading-relaxed text-foreground">
                   {currentCard.back}
